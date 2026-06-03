@@ -1,12 +1,14 @@
-# Automated Fixed Income Security Screening and Scoring Model
+# Fixed Income Portfolio Screening and Monitoring Model
 
 ## Overview
 
-This project builds an automated fixed income screening and scoring model in R that evaluates newly issued bonds against prevailing U.S. interest rate benchmarks to support fixed income investment analysis.
+This project builds an automated fixed income portfolio screening and monitoring model in R that evaluates both newly issued bonds and existing holdings against prevailing U.S. interest rate benchmarks.
 
-The model ingests new bond issues from Fidelity, benchmarks each security against the appropriate Treasury yield based on its maturity profile, calculates yield spreads, evaluates credit risk, and generates a composite investment score. Based on the total score, each security receives a recommendation ranging from **Strong Buy** to **Avoid**.
+The model ingests new bond issues from Fidelity, benchmarks each security against the appropriate Treasury yield based on its maturity profile, calculates yield spreads, evaluates credit risk, and generates a composite investment score. Based on the results, securities receive Buy, Hold, Review, Sell, or Avoid recommendations.
 
-The objective is to provide a consistent, rules-based framework for screening fixed income securities and identifying attractive investment opportunities.
+For existing holdings, the model evaluates whether a position remains attractive under current market conditions by comparing the bond's coupon rate, maturity profile, and credit quality against comparable newly issued securities.
+
+The objective is to provide a consistent, rules-based framework for fixed income security selection, portfolio monitoring, and reinvestment decision-making.
 
 ---
 
@@ -14,12 +16,12 @@ The objective is to provide a consistent, rules-based framework for screening fi
 
 The model systematically evaluates fixed income securities across key investment criteria including:
 
-* Yield attractiveness
+* Yield attractiveness relative to Treasury benchmarks
 * Credit quality
-* Duration exposure
+* Duration exposure and interest rate sensitivity
 * Call protection
-
-The goal is to support investment screening through an automated scoring framework that reduces manual review and improves consistency in security selection.
+* Relative value versus current market alternatives
+* Existing holding review and reinvestment analysis
 
 ---
 
@@ -51,18 +53,20 @@ U.S. interest rate benchmarks retrieved via the FRED API, including:
 
 ## How the Model Works
 
-### Step 1 – Duration Bucketing
+### Step 1 — Duration Bucketing
 
 Each bond is assigned to a maturity bucket based on years remaining to maturity:
 
-* 0–1 Year
-* 1–3 Years
-* 3–5 Years
-* 5+ Years
+| Duration Bucket | Years to Maturity |
+| --------------- | ----------------- |
+| 0–1 Year        | ≤ 1 year          |
+| 1–3 Years       | 1–3 years         |
+| 3–5 Years       | 3–5 years         |
+| 5+ Years        | Over 5 years      |
 
-### Step 2 – Treasury Benchmark Matching
+### Step 2 — Treasury Benchmark Matching
 
-Each maturity bucket is matched to an appropriate Treasury benchmark:
+Each maturity bucket is matched to the appropriate Treasury benchmark rate pulled live from FRED:
 
 | Duration Bucket | Benchmark              |
 | --------------- | ---------------------- |
@@ -71,7 +75,7 @@ Each maturity bucket is matched to an appropriate Treasury benchmark:
 | 3–5 Years       | 5-Year Treasury Yield  |
 | 5+ Years        | 10-Year Treasury Yield |
 
-### Step 3 – Yield Spread Analysis
+### Step 3 — Yield Spread Analysis
 
 Yield spread is calculated as:
 
@@ -79,66 +83,69 @@ Yield spread is calculated as:
 Yield Spread = Coupon Rate − Treasury Benchmark Yield
 ```
 
-Spread assessment:
+The model evaluates whether the bond provides sufficient compensation above the risk-free Treasury rate for its maturity profile.
 
-* ≥ 1.0% → Excellent
-* ≥ 0.5% → Good
-* ≥ 0.2% → Fair
-* < 0.2% → Poor
+### Step 4 — Credit Risk Assessment
 
-### Step 4 – Credit Risk Assessment
+Moody's credit ratings are mapped into risk categories and incorporated into the scoring framework.
 
-Moody's ratings are mapped into risk categories:
-
-| Rating    | Risk Level |
-| --------- | ---------- |
-| Aaa / AAA | Very Low   |
-| Aa / AA   | Low        |
-| A         | Low-Medium |
-| Baa / BBB | Medium     |
-| Ba / BB   | High       |
-| B / C     | Very High  |
-
-### Step 5 – Composite Scoring
+### Step 5 — Composite Scoring
 
 Each bond receives a composite score based on:
 
 * Yield spread attractiveness
 * Credit quality
 * Call protection
-* Duration profile
+* Duration risk relative to yield compensation
 
-| Component       | Criteria         | Score |
-| --------------- | ---------------- | ----- |
-| Yield Spread    | ≥ 1.0%           | +3    |
-| Yield Spread    | ≥ 0.5%           | +2    |
-| Yield Spread    | ≥ 0.2%           | +1    |
-| Yield Spread    | < 0%             | -2    |
-| Credit Rating   | Very Low / Low   | +2    |
-| Credit Rating   | Low-Medium       | +1    |
-| Credit Rating   | High / Very High | -2    |
-| Call Protection | Yes              | +2    |
-| Call Protection | No               | -2    |
-| Duration        | 0–1 Year         | +2    |
-| Duration        | 1–3 Years        | +1    |
-| Duration        | 3+ Years         | -1    |
+### Step 6 — Investment Recommendation
 
-### Step 6 – Investment Recommendation
-
-Final recommendations are generated based on the total composite score:
+Based on the composite score, the model generates one of the following recommendations:
 
 | Score | Recommendation |
 | ----- | -------------- |
-| ≥ 7   | Strong Buy     |
-| ≥ 5   | Good Candidate |
-| ≥ 3   | Review         |
-| < 3   | Avoid          |
+| ≥ 6   | Strong Buy     |
+| ≥ 4   | Good Candidate |
+| ≥ 2   | Review         |
+| < 2   | Avoid          |
+
+### Step 7 — Existing Holding Review (Hold vs Sell)
+
+For securities flagged as existing holdings, the model evaluates whether the position remains attractive relative to current market conditions.
+
+The analysis compares:
+
+* Current coupon rate
+* Remaining maturity
+* Credit quality
+* Current Treasury benchmark
+* Comparable newly issued alternatives
+
+The model estimates the trade-off between continuing to hold the security and selling to reinvest into higher-yielding opportunities.
+
+#### Hold vs Sell Framework
+
+| Condition                                       | Signal                            |
+| ----------------------------------------------- | --------------------------------- |
+| Coupon materially above comparable market rates | Hold / Potential Premium Sale     |
+| Coupon broadly in line with market rates        | Hold                              |
+| Coupon moderately below market rates            | Review                            |
+| Coupon significantly below market rates         | Evaluate Reinvestment Opportunity |
+
+#### Break-Even Analysis
+
+For each existing holding, the model calculates:
+
+* Rate Delta versus current benchmark
+* Annual Opportunity Cost
+* Total Opportunity Cost over remaining maturity
+* Estimated break-even period for switching into a higher-yielding alternative
 
 ---
 
 ## Key Outputs
 
-For each security, the model generates:
+### Fixed Income Master Watchlist
 
 * Treasury benchmark comparison
 * Yield spread analysis
@@ -148,15 +155,33 @@ For each security, the model generates:
 * Composite investment score
 * Investment recommendation
 
+### Holding Analysis
+
+* Hold / Sell recommendation
+* Rate delta versus benchmark
+* Opportunity cost estimates
+* Break-even analysis
+* Reinvestment assessment
+
+### Fixed Income Rates
+
+Live FRED benchmark rates updated each run:
+
+* Federal Funds Rate
+* SOFR
+* Treasury yields (1Y, 2Y, 5Y, 10Y)
+* CPI
+
 ---
 
 ## Automation Features
 
-* Automatically detects whether a new Fidelity bond file has been downloaded before execution
-* Preserves existing holdings flagged as "Existing Holding = Yes" during monthly refreshes
+* Pulls live Treasury benchmark rates from FRED via API
+* Reads new bond issue data from Fidelity CSV downloads
+* Preserves existing holdings during monthly refreshes
 * Highlights newly added securities in the output workbook
-* Pulls current Treasury benchmark rates directly from FRED via API
-* Writes scored securities and recommendations to a master Excel workbook
+* Performs Hold / Sell analysis for existing positions
+* Writes all results to a master Excel workbook
 
 ---
 
@@ -164,8 +189,7 @@ For each security, the model generates:
 
 * R
 * Federal Reserve Economic Data (FRED) API
-* Fidelity New Issues Data
-* tidyverse
+* Fidelity Fixed Income Data
 * dplyr
 * openxlsx
 * httr2
